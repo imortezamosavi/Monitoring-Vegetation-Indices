@@ -1,7 +1,9 @@
-# VIOT
-Vegetation Indices Over Time (VIOT): Functions process satellite imagery for NDVI, EVI, SAVI, DVI calculation in MODIS, Landsat 9, Sentinel-2. Interactive UI generates time series charts.
+# Vegetation Indices Over Time (VIOT)
+Description:
 
-These codes provide functions to process satellite imagery and calculate vegetation indices such as NDVI, EVI, SAVI, and DVI for MODIS, Landsat 9, and Sentinel-2 images in Google Earth Engine. They also include a user interface for interactive selection of a point on the map to generate time series charts of these indices.
+Vegetation Indices Over Time (VIOT) is a set of functions designed to process satellite imagery and calculate key vegetation indices, including NDVI, EVI, SAVI, and DVI, using data from MODIS, Landsat 9, and Sentinel-2 satellites. These functions are implemented in Google Earth Engine (GEE) and are accompanied by an interactive user interface (UI) for selecting a location on the map and generating time series charts of these indices.
+
+Features:
 
 MODIS Functions:
 
@@ -18,6 +20,10 @@ Sentinel-2 Functions:
 maskSentinel2: Masks clouds in Sentinel-2 images using the QA60 band.
 computeNDVI, computeEVI, computeSAVI, computeDVI: Compute NDVI, EVI, SAVI, and DVI for Sentinel-2 images.
 createVegetationIndexChart: Create a chart of vegetation indices over time for a selected point on the map using Sentinel-2 images.
-Each set of functions is followed by the initialization of UI elements for date selection and a panel to display the chart and user instructions. The Map.onClick function allows users to select a point on the map to generate the vegetation index chart.
+Usage:
 
-Overall, these codes provide a comprehensive toolset for processing and visualizing vegetation indices from different satellite platforms, offering valuable insights into vegetation dynamics over time.
+The provided functions can be used to analyze vegetation dynamics over time, allowing researchers and environmental scientists to gain insights into ecosystem health, land cover changes, and agricultural monitoring.
+
+Installation:
+
+To use VIOT, simply copy the provided functions into the Google Earth Engine Code Editor and run the script. Ensure you have the necessary permissions and data access in GEE.
