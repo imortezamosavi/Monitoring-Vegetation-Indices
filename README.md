@@ -1,7 +1,7 @@
-# Vegetation Indices Over Time (VIOT)
+# Monitoring Vegetation Indices (MVI)
 Description:
 
-Vegetation Indices Over Time (VIOT) is a set of functions designed to process satellite imagery and calculate key vegetation indices, including NDVI, EVI, SAVI, and DVI, using data from MODIS, Landsat 9, and Sentinel-2 satellites. These functions are implemented in Google Earth Engine (GEE) and are accompanied by an interactive user interface (UI) for selecting a location on the map and generating time series charts of these indices.
+Monitoring Vegetation Indices (MVI) is a set of functions designed to process satellite imagery and calculate key vegetation indices, including NDVI, EVI, SAVI, and DVI, using data from MODIS, Landsat 9, and Sentinel-2 satellites. These functions are implemented in Google Earth Engine (GEE) and are accompanied by an interactive user interface (UI) for selecting a location on the map and generating time series charts of these indices.
 
 Features:
 
@@ -26,4 +26,4 @@ The provided functions can be used to analyze vegetation dynamics over time, all
 
 Installation:
 
-To use VIOT, simply copy the provided functions into the Google Earth Engine Code Editor and run the script. Ensure you have the necessary permissions and data access in GEE.
+To use MVI, simply copy the provided functions into the Google Earth Engine Code Editor and run the script. Ensure you have the necessary permissions and data access in GEE.
