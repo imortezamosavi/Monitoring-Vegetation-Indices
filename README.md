@@ -38,14 +38,14 @@ Below are example charts generated using data from the three satellites:
 
 ### Sentinel-2
 
-![Sentinel-2 Chart](https://github.com/imortezamosavi/Monitoring-Vegetation-Indices/blob/main/Sentinel.png)
+![Sentinel-2 Chart](https://github.com/imortezamosavi/Monitoring-Vegetation-Indices/blob/main/example/Sentinel.png)
 
 ### Landsat-9
 
-![Landsat-9 Chart](https://github.com/imortezamosavi/Monitoring-Vegetation-Indices/blob/main/Landsat.png)
+![Landsat-9 Chart](https://github.com/imortezamosavi/Monitoring-Vegetation-Indices/blob/main/example/Landsat.png)
 
 ### MODIS
 
-![MODIS Chart](https://github.com/imortezamosavi/Monitoring-Vegetation-Indices/blob/main/Modis.png)
+![MODIS Chart](https://github.com/imortezamosavi/Monitoring-Vegetation-Indices/blob/main/example/Modis.png)
 
 By following these instructions, you can effectively use the MVI functions to conduct comprehensive vegetation monitoring and analysis.
