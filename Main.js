@@ -19,7 +19,7 @@ function Normalize_index(index, geometry, scale) {
 var datasets = {
   'Sentinel-2': {
     collection: 'COPERNICUS/S2_SR_HARMONIZED',
-    bands: { NIR: 'B8', RED: 'B4', BLUE: 'B2' },
+    bands: { NIR: 'B8', RED: 'B4', BLUE: 'B2', GREEN: 'B3', SWIR1: 'B11' },
     scale: 100,
     mask: function (image) {
       var qa = image.select('QA60');
@@ -30,7 +30,7 @@ var datasets = {
   },
   'Landsat 9': {
     collection: 'LANDSAT/LC09/C02/T1_L2',
-    bands: { NIR: 'SR_B5', RED: 'SR_B4', BLUE: 'SR_B2' },
+    bands: { NIR: 'SR_B5', RED: 'SR_B4', BLUE: 'SR_B2', GREEN: 'SR_B3', SWIR1: 'SR_B6' },
     scale: 100,
     mask: function (image) {
       var qa = image.select('QA_PIXEL');
@@ -39,8 +39,8 @@ var datasets = {
   },
   'MODIS': {
     collection: 'MODIS/006/MOD09GA',
-    bands: { NIR: 'sur_refl_b02', RED: 'sur_refl_b01', BLUE: 'sur_refl_b03' },
-    scale: 100,
+    bands: { NIR: 'sur_refl_b02', RED: 'sur_refl_b01', BLUE: 'sur_refl_b03', GREEN: 'sur_refl_b04', SWIR1: 'sur_refl_b06' },
+    scale: 500,
     mask: function (image) {
       return image.updateMask(image.select('QC_500m').bitwiseAnd(1 << 0).eq(0));
     }
@@ -50,29 +50,40 @@ var datasets = {
 // ---------- Vegetation Index Computation ---------- //
 
 function computeIndices(image, bands) {
-  var ndvi = image.normalizedDifference([bands.NIR, bands.RED]).rename('NDVI');
+  var NIR = image.select(bands.NIR);
+  var RED = image.select(bands.RED);
+  var BLUE = image.select(bands.BLUE);
+  var GREEN = image.select(bands.GREEN);
+  var SWIR1 = image.select(bands.SWIR1);
+
+  var ndvi = NIR.subtract(RED).divide(NIR.add(RED)).rename('NDVI');
   var evi = image.expression(
     '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
-      'NIR': image.select(bands.NIR),
-      'RED': image.select(bands.RED),
-      'BLUE': image.select(bands.BLUE)
-  }).rename('EVI');
+      'NIR': NIR, 'RED': RED, 'BLUE': BLUE
+    }).rename('EVI');
   var savi = image.expression(
     '((NIR - RED) / (NIR + RED + 0.5)) * 1.5', {
-      'NIR': image.select(bands.NIR),
-      'RED': image.select(bands.RED)
-  }).rename('SAVI');
-  var dvi = image.expression('NIR - RED', {
-    'NIR': image.select(bands.NIR),
-    'RED': image.select(bands.RED)
-  }).rename('DVI');
+      'NIR': NIR, 'RED': RED
+    }).rename('SAVI');
+  var dvi = NIR.subtract(RED).rename('DVI');
+  var ndwi = NIR.subtract(SWIR1).divide(NIR.add(SWIR1)).rename('NDWI');
+  var gndvi = NIR.subtract(GREEN).divide(NIR.add(GREEN)).rename('GNDVI');
+  var bsi = image.expression(
+    '((SWIR1 + RED) - (NIR + BLUE)) / ((SWIR1 + RED) + (NIR + BLUE))', {
+      'SWIR1': SWIR1, 'RED': RED, 'NIR': NIR, 'BLUE': BLUE
+    }).rename('BSI');
 
-  return image.addBands([
-    ndvi.unitScale(-1, 1).clamp(0, 1),
-    evi.unitScale(-1, 1).clamp(0, 1),
-    savi.unitScale(-1, 1).clamp(0, 1),
-    dvi.unitScale(-10000, 10000).clamp(0, 1)
-  ]);
+  // Normalize all indices to [0, 1]
+  var indices = [
+    ndvi, evi, savi, dvi, ndwi, gndvi, bsi
+  ];
+
+  // Apply normalization to each index
+  var normalizedIndices = indices.map(function (index) {
+    return index.unitScale(-1, 1).clamp(0, 1);  // Normalize to range [0, 1]
+  });
+
+  return image.addBands(normalizedIndices);
 }
 
 // ---------- UI Components ---------- //
@@ -110,7 +121,7 @@ function createVegetationIndexChart(startDate, endDate, point, datasetKey) {
     .map(function (img) { return computeIndices(img, ds.bands); });
 
   return ui.Chart.image.series({
-    imageCollection: collection.select(['NDVI', 'EVI', 'SAVI', 'DVI']),
+    imageCollection: collection.select(['NDVI', 'EVI', 'SAVI', 'DVI', 'NDWI', 'GNDVI', 'BSI']),
     region: point,
     reducer: ee.Reducer.mean(),
     scale: ds.scale
@@ -124,7 +135,10 @@ function createVegetationIndexChart(startDate, endDate, point, datasetKey) {
       0: { color: 'red' },
       1: { color: 'green' },
       2: { color: 'blue' },
-      3: { color: 'purple' }
+      3: { color: 'purple' },
+      4: { color: 'cyan' },
+      5: { color: 'orange' },
+      6: { color: 'brown' }
     }
   });
 }
