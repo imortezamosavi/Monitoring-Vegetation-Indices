@@ -1,4 +1,26 @@
-// Monitoring Vegetation Indices
+// Function to normalize an index
+function Normalize_index(index, geometry, scale) {
+  // Compute min and max values over the specified geometry
+  var minMax = index.reduceRegion({
+    reducer: ee.Reducer.minMax(),
+    geometry: geometry,
+    scale: scale,
+    maxPixels: 1e9
+  });
+
+  // Extract band name
+  var index_name = ee.String(index.bandNames().get(0));
+
+  // Get min and max values from the minMax dictionary
+  var Min = ee.Number(minMax.get(index_name.cat('_min')));
+  var Max = ee.Number(minMax.get(index_name.cat('_max')));
+
+  // Normalize the image: (image - min) / (max - min)
+  var normalized = index.subtract(Min).divide(Max.subtract(Min)).rename('Normalized');
+
+  return normalized;
+}
+
 // Function to mask clouds in Sentinel-2 images
 function maskSentinel2(image) {
     var qa = image.select('QA60');
@@ -12,6 +34,7 @@ function maskSentinel2(image) {
 // Function to compute NDVI for Sentinel-2 images
 function computeNDVI_S2(image) {
     var ndvi = image.normalizedDifference(['B8', 'B4']).rename('NDVI');
+    ndvi = ndvi.unitScale(-1, 1).clamp(0, 1);  // NDVI normally ranges from -1 to 1
     return image.addBands(ndvi);
 }
 
@@ -23,6 +46,7 @@ function computeEVI_S2(image) {
         'RED': image.select('B4'),
         'BLUE': image.select('B2')
     }).rename('EVI');
+    evi = evi.unitScale(-1, 1).clamp(0, 1);  // EVI typically ranges from -1 to +1
     return image.addBands(evi);
 }
 
@@ -33,6 +57,7 @@ function computeSAVI_S2(image) {
         'NIR': image.select('B8'),
         'RED': image.select('B4')
     }).rename('SAVI');
+    savi = savi.unitScale(-1, 1).clamp(0, 1);  // SAVI range depends on vegetation but -1 to +1 is safe
     return image.addBands(savi);
 }
 
@@ -43,6 +68,9 @@ function computeDVI_S2(image) {
         'NIR': image.select('B8'),
         'RED': image.select('B4')
     }).rename('DVI');
+    
+    // Assuming Sentinel-2 SR reflectance range: 0–10000, DVI could be ~ -10000 to +10000
+    dvi = dvi.unitScale(-10000, 10000).clamp(0, 1);
     return image.addBands(dvi);
 }
 
@@ -55,41 +83,45 @@ function maskLandsat(image) {
 
 // Function to compute NDVI for Landsat 9 images
 function computeNDVI_L9(image) {
-    return image.addBands(image.normalizedDifference(['SR_B5', 'SR_B4']).rename('NDVI'));
+    var ndvi = image.normalizedDifference(['SR_B5', 'SR_B4']).rename('NDVI');
+    ndvi = ndvi.unitScale(-1, 1).clamp(0, 1);  // NDVI typically ranges from -1 to +1
+    return image.addBands(ndvi);
 }
 
 // Function to compute EVI for Landsat 9 images
 function computeEVI_L9(image) {
-    return image.addBands(
-        image.expression(
-            '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
-            'NIR': image.select('SR_B5'),
-            'RED': image.select('SR_B4'),
-            'BLUE': image.select('SR_B2')
-        }).rename('EVI')
-    );
+    var evi = image.expression(
+        '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
+        'NIR': image.select('SR_B5'),
+        'RED': image.select('SR_B4'),
+        'BLUE': image.select('SR_B2')
+    }).rename('EVI');
+    evi = evi.unitScale(-1, 1).clamp(0, 1);  // EVI typically ranges from -1 to +1
+    return image.addBands(evi);
 }
 
 // Function to compute SAVI for Landsat 9 images
 function computeSAVI_L9(image) {
-    return image.addBands(
-        image.expression(
-            '((NIR - RED) / (NIR + RED + 0.5)) * 1.5', {
-            'NIR': image.select('SR_B5'),
-            'RED': image.select('SR_B4')
-        }).rename('SAVI')
-    );
+    var savi = image.expression(
+        '((NIR - RED) / (NIR + RED + 0.5)) * 1.5', {
+        'NIR': image.select('SR_B5'),
+        'RED': image.select('SR_B4')
+    }).rename('SAVI');
+    savi = savi.unitScale(-1, 1).clamp(0, 1);  // SAVI range is also typically -1 to +1
+    return image.addBands(savi);
 }
 
 // Function to compute DVI for Landsat 9 images
 function computeDVI_L9(image) {
-    return image.addBands(
-        image.expression(
-            'NIR - RED', {
-            'NIR': image.select('SR_B5'),
-            'RED': image.select('SR_B4')
-        }).rename('DVI')
-    );
+    var dvi = image.expression(
+        'NIR - RED', {
+        'NIR': image.select('SR_B5'),
+        'RED': image.select('SR_B4')
+    }).rename('DVI');
+    
+    // Landsat SR reflectance ranges: 0–10000, so DVI could go from -10000 to +10000
+    dvi = dvi.unitScale(-10000, 10000).clamp(0, 1);
+    return image.addBands(dvi);
 }
 
 // Function to mask clouds in MODIS images
@@ -102,6 +134,7 @@ function maskMODIS(image) {
 // Function to compute NDVI for MODIS images
 function computeNDVI_MODIS(image) {
     var ndvi = image.normalizedDifference(['sur_refl_b02', 'sur_refl_b01']).rename('NDVI');
+    ndvi = ndvi.unitScale(-1, 1).clamp(0, 1);
     return image.addBands(ndvi);
 }
 
@@ -113,6 +146,7 @@ function computeEVI_MODIS(image) {
         'RED': image.select('sur_refl_b01'),
         'BLUE': image.select('sur_refl_b03')
     }).rename('EVI');
+    evi = evi.unitScale(-1, 1).clamp(0, 1);
     return image.addBands(evi);
 }
 
@@ -123,6 +157,7 @@ function computeSAVI_MODIS(image) {
         'NIR': image.select('sur_refl_b02'),
         'RED': image.select('sur_refl_b01')
     }).rename('SAVI');
+    savi = savi.unitScale(-1, 1).clamp(0, 1);
     return image.addBands(savi);
 }
 
@@ -133,6 +168,7 @@ function computeDVI_MODIS(image) {
         'NIR': image.select('sur_refl_b02'),
         'RED': image.select('sur_refl_b01')
     }).rename('DVI');
+    dvi = dvi.unitScale(-10000, 10000).clamp(0, 1);
     return image.addBands(dvi);
 }
 
@@ -141,7 +177,8 @@ function createVegetationIndexChart(startDate, endDate, point, dataset) {
     var collection;
     var scale;
     if (dataset === 'Sentinel-2') {
-        collection = ee.ImageCollection('COPERNICUS/S2')
+        scale = 100;
+        collection = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
             .filterBounds(point)
             .filterDate(startDate, endDate)
             .map(maskSentinel2)
@@ -149,8 +186,9 @@ function createVegetationIndexChart(startDate, endDate, point, dataset) {
             .map(computeEVI_S2)
             .map(computeSAVI_S2)
             .map(computeDVI_S2);
-        scale = 10;
+
     } else if (dataset === 'Landsat 9') {
+        scale = 100;
         collection = ee.ImageCollection('LANDSAT/LC09/C02/T1_L2')
             .filterBounds(point)
             .filterDate(startDate, endDate)
@@ -159,8 +197,10 @@ function createVegetationIndexChart(startDate, endDate, point, dataset) {
             .map(computeEVI_L9)
             .map(computeSAVI_L9)
             .map(computeDVI_L9);
-        scale = 30;
+
+        
     } else if (dataset === 'MODIS') {
+        scale = 100;
         collection = ee.ImageCollection('MODIS/006/MOD09GA')
             .filterBounds(point)
             .filterDate(startDate, endDate)
@@ -169,7 +209,7 @@ function createVegetationIndexChart(startDate, endDate, point, dataset) {
             .map(computeEVI_MODIS)
             .map(computeSAVI_MODIS)
             .map(computeDVI_MODIS);
-        scale = 500;
+            
     }
 
     return ui.Chart.image.series({
@@ -227,7 +267,6 @@ var secondRow = ui.Panel({
     style: {margin: '5px'}
 });
 
-
 var panel = ui.Panel({
     widgets: [firstRow, secondRow],
     layout: ui.Panel.Layout.flow('vertical'),
@@ -272,7 +311,7 @@ var dataset = datasetSelect.getValue();
 
 var initialCollection;
 if (dataset === 'Sentinel-2') {
-    initialCollection = ee.ImageCollection('COPERNICUS/S2')
+    initialCollection = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
         .filterDate(startDate, endDate)
         .map(maskSentinel2)
         .map(computeNDVI_S2)
